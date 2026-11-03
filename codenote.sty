@@ -1,0 +1,224 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{codenote}[2026/11/02 v1.1]
+
+\RequirePackage{iftex}
+\ifTUTeX\else\RequirePackage[T1]{fontenc}\fi
+
+\RequirePackage[a4paper, margin=2.5cm, headheight=14pt]{geometry}
+\RequirePackage{amsmath}
+\RequirePackage{newpxtext}
+\RequirePackage{newpxmath}
+\RequirePackage[scale=.88]{sourcecodepro}
+\RequirePackage{microtype}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{xcolor}
+\RequirePackage[font=small, labelfont=bf, labelsep=quad]{caption}
+\RequirePackage{enumitem}
+\RequirePackage{titlesec}
+\RequirePackage{fancyhdr}
+\RequirePackage[skins, breakable, hooks, xparse, minted]{tcolorbox}
+\RequirePackage[pdfusetitle]{hyperref}
+
+\linespread{1.05}
+
+\definecolor{cn-accent}{HTML}{2C4F7C}
+\definecolor{cn-ink}{HTML}{2B303B}
+\definecolor{cn-muted}{HTML}{7C8698}
+\definecolor{cn-rule}{HTML}{D8DEE6}
+\definecolor{cn-back}{HTML}{F7F8FA}
+\definecolor{cn-head}{HTML}{EDF0F4}
+
+\hypersetup{
+  colorlinks,
+  linkcolor = cn-accent,
+  urlcolor  = cn-accent,
+  citecolor = cn-accent,
+  bookmarksnumbered
+}
+
+\titleformat{\section}{\Large\bfseries\color{cn-accent}}{\thesection}{.8em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{.8em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{.8em}{}
+\titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.2ex plus .2ex}
+\titlespacing*{\subsubsection}{0pt}{2ex plus .5ex minus .2ex}{1ex plus .2ex}
+
+\setlist{itemsep=.2em, topsep=.5em}
+
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[C]{\small\color{cn-muted}\thepage}
+  \renewcommand\headrulewidth{0pt}
+}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{cn-muted}\@title}
+\fancyhead[R]{\small\color{cn-muted}\thepage}
+\renewcommand\headrule{{\color{cn-rule}\hrule height \headrulewidth width \headwidth \vskip -\headrulewidth}}
+
+\renewcommand\maketitle{
+  \thispagestyle{plain}
+  \begin{center}
+    {\LARGE\bfseries\color{cn-accent}\@title\par}
+    \vskip 1.2em
+    {\large\begin{tabular}[t]{c}\@author\end{tabular}\par}
+    \vskip .4em
+    {\small\color{cn-muted}\@date\par}
+  \end{center}
+  \vskip 1.5em
+}
+
+\setminted{
+  style          = xcode,
+  fontsize       = \small,
+  tabsize        = 4,
+  linenos,
+  numbersep      = 10pt,
+  breaklines,
+  autogobble,
+  highlightcolor = cn-accent!9
+}
+\renewcommand\theFancyVerbLine{\textcolor{cn-muted}{\scriptsize\arabic{FancyVerbLine}}}
+
+\newcommand\codenote@file{}
+\newcommand\codenote@lang{}
+\newcommand\codenote@src{}
+\newcommand\codenote@shell[2]{(#1) > #2 2>&1; [ -s #2 ] || echo '(no output)' > #2}
+
+\ExplSyntaxOn
+\str_new:N \l__codenote_dir_str
+\str_new:N \l__codenote_base_str
+\str_new:N \l__codenote_ext_str
+\str_new:N \l__codenote_bin_str
+\str_new:N \l__codenote_out_str
+\tl_new:N \g__codenote_run_tl
+\prop_const_from_keyval:Nn \c__codenote_lang_prop
+  {
+    py = python, js = javascript, ts = typescript, rs = rust, rb = ruby,
+    jl = julia, hs = haskell, kt = kotlin, cs = csharp, ml = ocaml,
+    h = c, hpp = cpp, cc = cpp, cxx = cpp, m = matlab, R = r, pl = perl,
+    sh = bash, tex = latex, md = markdown, yml = yaml, vhd = vhdl,
+    s = gas, txt = text
+  }
+\msg_new:nnn { codenote } { no-runner }
+  { No~runner~for~'#1'.~Define~one~with~\iow_char:N\\setrunner. }
+\msg_new:nnn { codenote } { no-output }
+  { Could~not~run~'#1'.~Compile~with~shell~escape~enabled. }
+
+\cs_new_protected:Npn \codenote@setlang #1
+  {
+    \prop_get:NnNF \c__codenote_lang_prop {#1} \codenote@lang
+      { \tl_set:Ne \codenote@lang { \tl_to_str:n {#1} } }
+    \tl_if_empty:NT \codenote@lang { \tl_set:Nn \codenote@lang { text } }
+  }
+\cs_new_protected:Npn \codenote@parse #1
+  {
+    \file_parse_full_name:nNNN {#1}
+      \l__codenote_dir_str \l__codenote_base_str \l__codenote_ext_str
+    \tl_set:Ne \codenote@file { \l__codenote_base_str \l__codenote_ext_str }
+    \exp_args:Ne \codenote@setlang { \str_tail:N \l__codenote_ext_str }
+  }
+\cs_new_protected:Npn \codenote@execute #1#2#3
+  {
+    \cs_if_exist:cTF { __codenote_runner_#2:nn }
+      {
+        \str_set:Ne \l__codenote_bin_str
+          {
+            \c_sys_jobname_str -run-
+            \str_mdfive_hash:e
+              { \file_mdfive_hash:n {#1} \cs_meaning:c { __codenote_runner_#2:nn } }
+          }
+        \str_set:Ne \l__codenote_out_str { \l__codenote_bin_str .out }
+        \file_if_exist:nF { \l__codenote_out_str }
+          {
+            \sys_shell_now:e
+              {
+                \codenote@shell
+                  { \use:c { __codenote_runner_#2:nn } {#1} { ./ \l__codenote_bin_str } }
+                  { \l__codenote_out_str }
+              }
+          }
+        \file_if_exist:nTF { \l__codenote_out_str }
+          { \tcbinputlisting { codenote~terminal, listing~file = \l__codenote_out_str, #3 } }
+          { \msg_warning:nnn { codenote } { no-output } {#1} }
+      }
+      { \msg_warning:nnn { codenote } { no-runner } {#2} }
+  }
+\cs_new_protected:Npn \codenote@capture
+  { \tl_gset:Ne \g__codenote_run_tl { { \codenote@src } { \codenote@lang } } }
+\cs_new_protected:Npn \codenote@release
+  { \exp_after:wN \codenote@execute \g__codenote_run_tl { before~skip = 3pt } }
+
+\NewDocumentCommand \runcode { o m }
+  {
+    \group_begin:
+      \codenote@parse {#2}
+      \IfValueT {#1} { \codenote@setlang {#1} }
+      \exp_args:Nne \codenote@execute {#2} { \codenote@lang } { }
+    \group_end:
+  }
+\NewDocumentCommand \setrunner { m m }
+  {
+    \group_begin:
+      \codenote@setlang {#1}
+      \cs_gset:cpn { __codenote_runner_ \codenote@lang :nn } ##1 ##2 {#2}
+    \group_end:
+  }
+\ExplSyntaxOff
+
+\setrunner{python}{python3 -u #1}
+\setrunner{c}{gcc #1 -o #2 -lm && #2}
+\setrunner{cpp}{g++ -std=c++17 #1 -o #2 && #2}
+\setrunner{java}{java #1}
+\setrunner{javascript}{node #1}
+\setrunner{r}{Rscript #1}
+\setrunner{julia}{julia #1}
+\setrunner{bash}{bash #1}
+\setrunner{perl}{perl #1}
+\setrunner{lua}{texlua #1}
+\setrunner{ruby}{ruby #1}
+\setrunner{go}{go run #1}
+\setrunner{rust}{rustc #1 -o #2 && #2}
+
+\tcbset{
+  default minted options = {},
+  file/.store in = \codenote@file,
+  lang/.code = {\codenote@setlang{#1}\pgfkeysalso{minted language/.expanded=\codenote@lang}},
+  src/.code = {\def\codenote@src{#1}\pgfkeysalso{listing file={#1}}},
+  source/.code = {\codenote@parse{#1}\pgfkeysalso{minted language/.expanded=\codenote@lang, src={#1}}},
+  run/.style = {after skip=3pt, before upper app=\codenote@capture, after app=\codenote@release},
+  lines/.style args = {#1-#2}{minted options app={firstline=#1, lastline=#2, firstnumber=#1}},
+  highlight/.style = {minted options app={highlightlines={#1}}},
+  codenote/.style = {
+    enhanced, breakable, listing only,
+    colback = cn-back, colframe = cn-rule,
+    colbacktitle = cn-head, coltitle = cn-ink,
+    boxrule = .6pt, titlerule = .6pt, arc = 3pt,
+    left = 26pt, right = 8pt, top = 3pt, bottom = 3pt,
+    lefttitle = 8pt, righttitle = 8pt, toptitle = 3pt, bottomtitle = 3pt,
+    fonttitle = \footnotesize\ttfamily,
+    title = {\codenote@file\hfill\textcolor{cn-muted}{\codenote@lang}},
+    before skip = 10pt plus 2pt, after skip = 10pt plus 2pt
+  },
+  codenote terminal/.style = {
+    codenote, notitle,
+    minted language = text,
+    minted options app = {linenos=false},
+    colback = cn-ink, colframe = cn-ink, colupper = cn-back,
+    left = 10pt, top = 5pt, bottom = 5pt
+  }
+}
+
+\NewTCBListing{codeblock}{ O{} m }{codenote, lang={#2}, src=\jobname.tmp.\codenote@lang, #1}
+\NewTCBInputListing{\inputcode}{ O{} m }{codenote, source={#2}, #1}
+\NewTCBListing{terminal}{ O{} }{codenote terminal, #1}
+
+\newtcbox{\codenote@inline}{
+  on line, colback = cn-head, colupper = cn-ink, boxrule = 0pt, arc = 2pt,
+  boxsep = 0pt, left = 2.5pt, right = 2.5pt, top = 1.5pt, bottom = 1.5pt,
+  fontupper = \ttfamily
+}
+\NewDocumentCommand\code{v}{\codenote@inline{#1}}
+
+\endinput
