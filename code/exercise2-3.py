@@ -3,9 +3,6 @@ import matplotlib.pyplot as plt
 import runpy
 from pathlib import Path
 
-helpers = runpy.run_path(str(Path(__file__).with_name('code.py')))
-Euler = helpers['Euler']
-f = helpers['f']
 
 u0 = 1
 T = 2

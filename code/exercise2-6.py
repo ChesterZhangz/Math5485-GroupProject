@@ -5,9 +5,6 @@ import runpy
 import numpy as np
 import matplotlib.pyplot as plt
 
-helpers = runpy.run_path(str(Path(__file__).with_name('code.py')))
-Euler = helpers['Euler']
-rate = helpers['rate']
 
 mu = 0.5  # illustrative choice; the problem does not specify mu
 T = 2.0  # illustrative choice; the problem does not specify T

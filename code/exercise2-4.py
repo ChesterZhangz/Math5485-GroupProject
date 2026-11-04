@@ -5,12 +5,6 @@ import runpy
 import numpy as np
 import matplotlib.pyplot as plt
 
-helpers = runpy.run_path(str(Path(__file__).with_name('code.py')))
-Euler = helpers['Euler']
-f = helpers['f']
-errors = helpers['errors']
-plot_errors = helpers['plot_errors']
-rate = helpers['rate']
 
 u0, T = 1, 2
 

@@ -73,6 +73,10 @@
     \]
     We apply the method with $n=5,10,100$ and compare the numerical
     solutions with the exact solution in the figure below.
+
+    \inputcode{code/exercise2-3.py}
+
+    
     \begin{center}
         \includegraphics[width=0.8\textwidth]{picture/exercise2-3.png}
     \end{center}
@@ -195,7 +199,7 @@ We know there are $n=\dfrac{T}{h}$ steps. If the propagation of errors is stable
 
         \textbf{Method 2.} The Newton's iteration is $v_{k+1}=v_k-\dfrac{\Phi(v_k)}{\Phi'(v_k)}.$
 
-        Since $\Phi$ is quadratic, Taylor's formula is exact for 
+        Since $\Phi$ is quadratic, Taylor's expansion is exact for 
         $$
         \Phi(v_{k+1})
         =\Phi(v_k)+\Phi'(v_k)(v_{k+1}-v_k) +\dfrac{h\sin(t_{j+1})}{2}(v_{k+1}-v_k)^2
@@ -204,10 +208,10 @@ We know there are $n=\dfrac{T}{h}$ steps. If the propagation of errors is stable
         For sufficiently small $h$, on
         $I=[v_1-1,v_1+1]$, we have $\dfrac{1}{2} \le \Phi'(v) \le \dfrac{3}{2}.$ Consequently, whenever $v_k\in I$, $|\Phi(v_{k+1})|\le2h|\Phi(v_k)|^2$, $|v_{k+1}-v_k|\le2|\Phi(v_k)|$. 
         
-        Using $v_1=u_j-hu_j^2\sin(t_j)$, $\Phi(v_1)=\dfrac{h}{2} [\sin(t_{j+1})v_1^2-\sin(t_j)u_j^2].$
+        Using $v_1=u_j-hu_j^2\sin(t_j)$, $\Phi(v_1)=\dfrac{h}{2} \left[\sin(t_{j+1})v_1^2-\sin(t_j)u_j^2\right].$
         
         Since $|\sin(t_{j+1})-\sin(t_j)|\le h$ and $|v_1-u_j|\le hu_j^2$, 
-        $$|\Phi(v_1)| \le\dfrac h2\left[hu_j^2+|v_1-u_j||v_1+u_j|\right] \le\dfrac{h^2}{2}[u_j^2+2|u_j|^3+hu_j^4]=O(h^2).$$
+        $$|\Phi(v_1)| \le\dfrac h2\left[hu_j^2+|v_1-u_j||v_1+u_j|\right] \le\dfrac{h^2}{2}\left[u_j^2+2|u_j|^3+hu_j^4\right]=O(h^2).$$
         
         Choose $h$ sufficiently small so that $2h|\Phi(v_1)|\le\dfrac12$ and $4|\Phi(v_1)|<1.$
         
@@ -233,15 +237,65 @@ We know there are $n=\dfrac{T}{h}$ steps. If the propagation of errors is stable
         Thus, Newton's method converges at least
         quadratically to $u_{j+1}$.
         
-    \item \textbf{(Chengxuan Ku)}
-    \item \textbf{(Yuran Cheng)}
+    \item \textbf{(Chengxuan Ku)}The general equation and its derivative for use inside Newton's method are
+$$
+ F(v)=v-u_j-\frac h2[f(t_j,u_j)+f(t_{j+1},v)] \text{ and }
+ F'(v)=1-\frac h2 f_u(t_{j+1},v).
+$$  We use them to plot our approximation, the plot is following.
+ \begin{center}
+        \includegraphics[width=0.8\textwidth]{picture/Exercise 3-4.png}
+    \end{center}
+ The plot compares the exact solution with the Euler and trapezoidal approximations for $u_0=1, T=2, n=5$. Both numerical methods follow the overall decreasing trend of the exact solution, but the trapezoidal approximation stays closer to the exact curve. It is consistent with its expected second-order convergence compared with the first-order Euler method.  
+    \item \textbf{(Yuran Cheng)} For $u_0=1$ and $T=2$, the exact solution is
+    \[
+        u(t)=\frac{1}{2-\cos t}.
+    \]
+    With $h=2/n$, the implicit trapezoid method is
+    \[
+        u_{j+1}=u_j+\frac{h}{2}\bigl[f(t_j,u_j)+f(t_{j+1},u_{j+1})\bigr].
+    \]
+    At each time step, we solve the implicit equation using Newton's method.
+    For $n=1,\ldots,500$, we compute
+    \[
+        e_n=\max_{0\le j\le n}|u_j-u(t_j)|
+    \]
+    for both Euler's method and the trapezoid method.
+    \begin{center}
+        \includegraphics[width=0.8\textwidth]{picture/exercise3-5.png}
+    \end{center}
+    The log--log plot shows that the trapezoid error decreases approximately
+    as $n^{-2}$, whereas Euler's error decreases approximately as $n^{-1}$.
+    Thus, the trapezoid method has convergence rate
+    \[
+        \boxed{r=2,\qquad e_n=O(n^{-2})=O(h^2).}
+    \]
+    This agrees with part (i), where the trapezoid method was predicted
+    to be second-order accurate.
 \end{enumerate}
 
 
 \subsection{Exercise 4}
 
 \begin{enumerate}
-    \item \textbf{(Yuqiao Zhang)}
+    \item \textbf{(Yuqiao Zhang)}  \\ 
+    By the definition of $G$ and $f(t,u)=-u^2\sin t$, we have $$G(v)=u_j-\dfrac h2\left[u_j^2\sin(t_j)+v^2\sin(t_{j+1})\right].$$
+
+    After Differentiating, we obtain $G'(v)=-hv\sin(t_{j+1}).$
+
+    Consider $I=[u_j-1,u_j+1]$. Since $|u_j|\le2$, for all $v\in I$, we have $|v|\le |u_j|+1\le3$. Therefore, $|G'(v)|=h|v||\sin(t_{j+1})|\le3h.$
+
+    For any $x,y\in I$, by the Mean Value Theorem, $|G(x)-G(y)|\le3h|x-y|.$
+
+    Thus, whenever $0<h<\dfrac13$, $G$ satisfies the contraction. For all $v\in I$,
+    $$\begin{aligned}
+        |G(v)-u_j|
+        &\le\dfrac h2\left[|u_j|^2+|v|^2\right]\\
+        &\le\dfrac h2(4+9)
+        =\dfrac{13h}{2}.
+    \end{aligned}$$
+
+    Hence, if $0 < h \le \dfrac{2}{13}$, then $G(v) \in I$ for every $v\in I$. Therefore, for all sufficiently small $h$, $G:I\to I$ is a contraction. According to the Banach Fixed-Point Theorem, $G$ has a unique fixed point in $I$, and the iteration $v_{k+1}=G(v_k)$ converges to this fixed point for any $v_1\in I$.
+    
     \item \textbf{(Yuran Cheng)}
 \end{enumerate}
 
@@ -250,11 +304,14 @@ We know there are $n=\dfrac{T}{h}$ steps. If the propagation of errors is stable
 \subsection{Exercise 5}
 
 \begin{enumerate}
-    \item \textbf{(Yuqiao Zhang)}
+    \item \textbf{(Yuqiao Zhang)} 
     \item \textbf{(Mutian Qi \& Chengxuan Ku )}
     \begin{enumerate}[label=\Roman*. ]
         \item \textbf{(Chengxuan Ku--Coding)}
-        
+        Euler's method need one evaluation of f per step, Heun's method need 2 evaluations, and RK4 need 4 evaluations. We check these counts using the counted function. To compare their efficiency, we plot the maximum error $e_n$ against the total number of evaluations on a log-log scale. The plot is following.
+         \begin{center}
+        \includegraphics[width=0.8\textwidth]{picture/Exercise 5-2.png}
+    \end{center}
         %  不要用中文的逗号，刚才报错是因为这个
         \item \textbf{(Mutian Qi--Writing)} For calculating Euler, we take about $n$ times, while we take $2n$ and $4n$ times separately on Heun and RK4. Based on the plot of error, the function takes 8 steps of calculation, and it takes 4 times in each of 8 steps, so total evaluations should be 32 times. In this case, we prefer RK4 because RK4 is 4th order method. Even if each steps take calculation over quartic function, the error declines faster. 
 
